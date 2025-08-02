@@ -9,6 +9,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.List;
 import java.util.UUID;
 
 @Path("/stocks")
@@ -28,6 +29,10 @@ public class StockController {
     ListAllStockUseCase listAllUseCase;
     @Inject
     DeleteStockUseCase deleteUseCase;
+    @Inject
+    BatchStockDeductionUseCase batchDeductionUseCase;
+    @Inject
+    BatchStockReversalUseCase batchReversalUseCase;
 
     @GET
     public Response list() {
@@ -68,5 +73,23 @@ public class StockController {
     public Response delete(@PathParam("productId") UUID productId) {
         deleteUseCase.execute(productId);
         return Response.noContent().build();
+    }
+
+    @POST
+    @Path("/deduct")
+    public Response deductStock(List<StockDTO> stocksToDeduct) {
+        return Response
+                .status(Response.Status.OK)
+                .entity(mapper.toDTOList(batchDeductionUseCase.execute(mapper.toDomainList(stocksToDeduct))))
+                .build();
+    }
+
+    @POST
+    @Path("/reverse")
+    public Response reverseStock(List<StockDTO> stocksToReverse) {
+        return Response
+                .status(Response.Status.OK)
+                .entity(mapper.toDTOList(batchReversalUseCase.execute(mapper.toDomainList(stocksToReverse))))
+                .build();
     }
 }

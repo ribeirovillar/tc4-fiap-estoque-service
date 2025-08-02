@@ -5,10 +5,13 @@ import com.fiap.estoque.exception.StockProductNotFoundException;
 import com.fiap.estoque.gateway.StockGateway;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.List;
 import java.util.Objects;
 
 @ApplicationScoped
-public class StockProductMissingValidation implements UpdateStockStrategy {
+public class StockProductMissingValidation implements UpdateStockStrategy,
+        DeductionStockStrategy, ReverseStockStrategy {
+
 
     private final StockGateway stockGateway;
 
@@ -21,6 +24,13 @@ public class StockProductMissingValidation implements UpdateStockStrategy {
     public void validate(Stock stock) {
         if (Objects.nonNull(stock) && Objects.nonNull(stock.getProductId())) {
             stockGateway.findByProductId(stock.getProductId()).orElseThrow(() -> new StockProductNotFoundException("Stock not found for productId: " + stock.getProductId()));
+        }
+    }
+
+    @Override
+    public void validate(List<Stock> stocks) {
+        for (Stock stock : stocks) {
+            validate(stock);
         }
     }
 }

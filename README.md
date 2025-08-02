@@ -19,13 +19,51 @@ API REST para gerenciamento de estoque de produtos, baseada em Quarkus e Clean A
 
 ## 📋 Endpoints REST
 
-| Método | Endpoint                        | Descrição                      |
-|--------|---------------------------------|--------------------------------|
-| GET    | `/stocks`                       | Listar todos os estoques       |
-| GET    | `/stocks/products/{productId}`  | Buscar estoque por ID produto  |
-| POST   | `/stocks`                       | Criar novo registro de estoque |
-| PUT    | `/stocks/products/{productId}`  | Atualizar quantidade estoque   |
-| DELETE | `/stocks/products/{productId}`  | Remover registro de estoque    |
+| Método | Endpoint                        | Descrição                           |
+|--------|---------------------------------|-------------------------------------|
+| GET    | `/stocks`                       | Listar todos os estoques            |
+| GET    | `/stocks/products/{productId}`  | Buscar estoque por ID produto       |
+| POST   | `/stocks`                       | Criar novo registro de estoque      |
+| PUT    | `/stocks/products/{productId}`  | Atualizar quantidade estoque        |
+| DELETE | `/stocks/products/{productId}`  | Remover registro de estoque         |
+| POST   | `/stocks/deduct`                | Baixa de estoque em lote            |
+| POST   | `/stocks/reverse`               | Reverter baixa de estoque em lote   |
+
+### Novos Endpoints de Operações em Lote
+
+#### POST `/stocks/deduct`
+Realiza baixa de estoque para múltiplos produtos. Recebe uma lista de `StockDTO` com `productId` e `quantity` para deduzir do estoque.
+
+**Exemplo de Request Body:**
+```json
+[
+  {
+    "productId": "123e4567-e89b-12d3-a456-426614174000",
+    "quantity": 5
+  },
+  {
+    "productId": "123e4567-e89b-12d3-a456-426614174001",
+    "quantity": 3
+  }
+]
+```
+
+#### POST `/stocks/reverse`
+Reverte baixas de estoque previamente realizadas. Útil quando um pedido falha após a baixa de estoque ter sido processada.
+
+**Exemplo de Request Body:**
+```json
+[
+  {
+    "productId": "123e4567-e89b-12d3-a456-426614174000",
+    "quantity": 5
+  },
+  {
+    "productId": "123e4567-e89b-12d3-a456-426614174001",
+    "quantity": 3
+  }
+]
+```
 
 ---
 
@@ -58,12 +96,14 @@ src/main/java/com/fiap/estoque/
 
 ### Variáveis de Ambiente
 
-| Variável                       | Padrão                                    | Descrição           |
-|--------------------------------|-------------------------------------------|---------------------|
-| `QUARKUS_HTTP_PORT`           | `8082`                                    | Porta da aplicação  |
-| `QUARKUS_DATASOURCE_USERNAME` | `postgres`                                | Usuário do banco    |
-| `QUARKUS_DATASOURCE_PASSWORD` | `postgres`                                | Senha do banco      |
+| Variável                       | Padrão                                      | Descrição           |
+|--------------------------------|---------------------------------------------|---------------------|
+| `QUARKUS_HTTP_PORT`           | `8082`                                      | Porta da aplicação  |
+| `QUARKUS_DATASOURCE_USERNAME` | `postgres`                                  | Usuário do banco    |
+| `QUARKUS_DATASOURCE_PASSWORD` | `postgres`                                  | Senha do banco      |
 | `QUARKUS_DATASOURCE_JDBC_URL` | `jdbc:postgresql://localhost:5434/stockdb` | URL do banco       |
+
+**Nota:** O banco de dados PostgreSQL está configurado para rodar na porta **5434** para evitar conflitos com outras instâncias.
 
 ---
 
@@ -105,7 +145,7 @@ docker run -p 8082:8082 fiap-estoque-service
 
 ## 📦 Docker Compose
 
-O projeto inclui configuração Docker Compose para desenvolvimento local com PostgreSQL.
+O projeto inclui configuração Docker Compose para desenvolvimento local com PostgreSQL na porta 5434.
 
 ```bash
 docker-compose up -d
@@ -119,9 +159,18 @@ docker-compose up -d
 - ✅ Quantidade de estoque não pode ser negativa
 - ✅ ID do produto é obrigatório
 - ✅ Produto não pode ter estoque duplicado
+- ✅ Operações em lote validam estoque suficiente antes de processar
+- ✅ Transações atômicas para operações em lote
 
 ### Exceções Customizadas
 - `InvalidProductIdException`: ID do produto inválido
 - `InvalidStockQuantityException`: Quantidade inválida
 - `StockProductAlreadyRegisteredException`: Produto já possui estoque
 - `StockProductNotFoundException`: Estoque não encontrado
+- `InsufficientStockException`: Estoque insuficiente para operação
+
+### Operações em Lote
+- **Baixa de Estoque**: Processa múltiplos produtos em uma única transação
+- **Reversão de Estoque**: Reverte baixas previamente realizadas
+- **Validação Prévia**: Verifica disponibilidade antes de processar qualquer item
+- **Atomicidade**: Se um item falhar, toda a operação é revertida
