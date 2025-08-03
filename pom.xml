@@ -3,7 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.fiap</groupId>
     <artifactId>fiap-estoque-service</artifactId>
+    <name>tc4-fiap-estoque-service</name>
     <version>1.0.0-SNAPSHOT</version>
+    <description>Serviço REST para gerenciamento de estoque de produtos usando Quarkus</description>
 
     <properties>
         <compiler-plugin.version>3.14.0</compiler-plugin.version>
